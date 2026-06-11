@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: artha-v2-backend
+    env: python
+    region: singapore          # closest to Mumbai for low latency
+    plan: starter
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: FERNET_KEY
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: alerts@artha.finance
+      - key: RAZORPAY_BILLING_KEY_ID
+        sync: false
+      - key: RAZORPAY_BILLING_KEY_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: APP_ENV
+        value: production
+      - key: FRONTEND_URL
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+    healthCheckPath: /health
+    autoDeploy: true

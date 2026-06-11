@@ -1,0 +1,45 @@
+# artha-v2/.github/workflows/daily-sync.yml
+# Triggers nightly reconciliation at 2 AM IST (8:30 PM UTC)
+# Protected by CRON_SECRET header
+
+name: Daily Reconciliation Sync
+
+on:
+  schedule:
+    - cron: "30 20 * * *"   # 8:30 PM UTC = 2:00 AM IST
+  workflow_dispatch:          # Allow manual trigger from GitHub UI
+
+jobs:
+  sync:
+    name: Trigger Artha Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Trigger sync endpoint
+        run: |
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.BACKEND_URL }}/api/cron/sync" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+
+          echo "HTTP Status: $HTTP_STATUS"
+          cat /tmp/response.json
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Sync failed with HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Log result
+        if: always()
+        run: |
+          echo "Sync completed at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          cat /tmp/response.json || true
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"🔴 Artha V2 nightly sync FAILED at $(date -u). Check GitHub Actions.\"}" || true
