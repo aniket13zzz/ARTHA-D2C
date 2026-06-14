@@ -1,7 +1,4 @@
 // artha-v2/frontend/app/api/export/tally/route.ts
-// Next.js route handler — proxies export requests to FastAPI backend
-// CA role: read-only, can download exports only
-
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -24,7 +21,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing export_id" }, { status: 400 });
   }
 
-  // Forward to FastAPI
   const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
   const resp = await fetch(`${apiUrl}/api/export/${exportId}`, {
     headers: { Authorization: `Bearer ${session.access_token}` },
@@ -44,7 +40,7 @@ export async function POST(req: NextRequest) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (name) => cookieStore.get(name)?.value } }
+    { cookies: { get: (name: string) => cookieStore.get(name)?.value } }
   );
 
   const { data: { session } } = await supabase.auth.getSession();
