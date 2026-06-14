@@ -1,11 +1,29 @@
 "use client";
 // artha-v2/frontend/app/settings/page.tsx
-// Settings: alerts, integrations, CA portal
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 type Tab = "alerts" | "integrations" | "billing";
+
+interface ConnStatusPlatform {
+  connected: boolean;
+  shop_domain?: string | null;
+  site_url?: string | null;
+  last_verified_at?: string | null;
+}
+
+interface ConnStatus {
+  shopify: ConnStatusPlatform;
+  woocommerce: ConnStatusPlatform;
+  razorpay: ConnStatusPlatform;
+}
+
+const DEFAULT_CONN: ConnStatus = {
+  shopify:     { connected: false },
+  woocommerce: { connected: false },
+  razorpay:    { connected: false },
+};
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("alerts");
@@ -13,12 +31,13 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
-
-  const [connStatus, setConnStatus] = useState<Record<string, Record<string, unknown>>>({});
+  const [connStatus, setConnStatus] = useState<ConnStatus>(DEFAULT_CONN);
 
   useEffect(() => {
     api.getAlertPrefs().then(setAlertPrefs).catch(console.error);
-    api.getConnectionStatus().then((s: unknown) => setConnStatus(s as Record<string, Record<string, unknown>>)).catch(console.error);
+    api.getConnectionStatus()
+      .then((s) => setConnStatus(s as ConnStatus))
+      .catch(console.error);
   }, []);
 
   async function saveAlerts(e: React.FormEvent) {
@@ -40,9 +59,9 @@ export default function SettingsPage() {
   }
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: "alerts", label: "Alert Preferences" },
+    { key: "alerts",       label: "Alert Preferences" },
     { key: "integrations", label: "Integrations" },
-    { key: "billing", label: "Billing" },
+    { key: "billing",      label: "Billing" },
   ];
 
   return (
@@ -61,7 +80,9 @@ export default function SettingsPage() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                tab === t.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                tab === t.key
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {t.label}
@@ -70,18 +91,23 @@ export default function SettingsPage() {
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">{error}</div>
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
         )}
         {saved && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">✓ Saved successfully</div>
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
+            ✓ Saved successfully
+          </div>
         )}
 
-        {/* Alerts Tab */}
+        {/* ── Alerts Tab ── */}
         {tab === "alerts" && (
           <form onSubmit={saveAlerts} className="space-y-6">
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <h3 className="font-semibold text-slate-900 mb-4">Notification Channels</h3>
               <div className="space-y-4">
+
                 {/* Email */}
                 <label className="flex items-center justify-between">
                   <div>
@@ -157,7 +183,9 @@ export default function SettingsPage() {
               <h3 className="font-semibold text-slate-900 mb-4">Alert Thresholds</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Ghost Order threshold (₹)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Ghost Order threshold (₹)
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -167,7 +195,9 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Variance threshold (₹)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Variance threshold (₹)
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -189,9 +219,10 @@ export default function SettingsPage() {
           </form>
         )}
 
-        {/* Integrations Tab */}
+        {/* ── Integrations Tab ── */}
         {tab === "integrations" && (
           <div className="space-y-4">
+
             {/* Shopify */}
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-3">
@@ -200,19 +231,23 @@ export default function SettingsPage() {
                   <div>
                     <div className="font-semibold text-slate-900">Shopify</div>
                     <div className="text-sm text-slate-500">
-                      {connStatus.shopify?.shop_domain ? String(connStatus.shopify.shop_domain) : "Orders & Refunds"}
+                      {connStatus.shopify.shop_domain ?? "Orders & Refunds"}
                     </div>
                   </div>
                 </div>
-                {connStatus.shopify?.connected ? (
+                {connStatus.shopify.connected ? (
                   <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Connected</span>
                 ) : (
                   <span className="px-3 py-1 bg-slate-100 text-slate-500 text-xs font-semibold rounded-full">Not connected</span>
                 )}
               </div>
-              {connStatus.shopify?.connected ? (
-                <button onClick={() => api.disconnectShopify().then(() => location.reload())}
-                  className="text-sm text-red-500 hover:text-red-700">Disconnect</button>
+              {connStatus.shopify.connected ? (
+                <button
+                  onClick={() => api.disconnectShopify().then(() => location.reload())}
+                  className="text-sm text-red-500 hover:text-red-700"
+                >
+                  Disconnect
+                </button>
               ) : (
                 <a href="/connect" className="text-sm text-blue-600 hover:text-blue-800">Connect Shopify →</a>
               )}
@@ -226,19 +261,23 @@ export default function SettingsPage() {
                   <div>
                     <div className="font-semibold text-slate-900">WooCommerce</div>
                     <div className="text-sm text-slate-500">
-                      {connStatus.woocommerce?.site_url ? String(connStatus.woocommerce.site_url) : "WordPress / WooCommerce store"}
+                      {connStatus.woocommerce.site_url ?? "WordPress / WooCommerce store"}
                     </div>
                   </div>
                 </div>
-                {connStatus.woocommerce?.connected ? (
+                {connStatus.woocommerce.connected ? (
                   <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Connected</span>
                 ) : (
                   <span className="px-3 py-1 bg-slate-100 text-slate-500 text-xs font-semibold rounded-full">Not connected</span>
                 )}
               </div>
-              {connStatus.woocommerce?.connected ? (
-                <button onClick={() => api.disconnectWooCommerce().then(() => location.reload())}
-                  className="text-sm text-red-500 hover:text-red-700">Disconnect</button>
+              {connStatus.woocommerce.connected ? (
+                <button
+                  onClick={() => api.disconnectWooCommerce().then(() => location.reload())}
+                  className="text-sm text-red-500 hover:text-red-700"
+                >
+                  Disconnect
+                </button>
               ) : (
                 <a href="/connect" className="text-sm text-blue-600 hover:text-blue-800">Connect WooCommerce →</a>
               )}
@@ -254,31 +293,30 @@ export default function SettingsPage() {
                     <div className="text-sm text-slate-500">Payments & Settlements</div>
                   </div>
                 </div>
-                {connStatus.razorpay?.connected ? (
+                {connStatus.razorpay.connected ? (
                   <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Connected</span>
                 ) : (
                   <span className="px-3 py-1 bg-slate-100 text-slate-500 text-xs font-semibold rounded-full">Not connected</span>
                 )}
               </div>
             </div>
+
           </div>
         )}
 
-        {/* Billing Tab */}
+        {/* ── Billing Tab ── */}
         {tab === "billing" && (
-          <div>
-            <a href="/settings/billing" className="block">
-              <div className="bg-white rounded-xl border border-slate-200 p-6 hover:border-blue-300 transition-colors cursor-pointer">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-slate-900">Billing & Usage</div>
-                    <div className="text-sm text-slate-500 mt-1">GMV history, plan details, invoices</div>
-                  </div>
-                  <span className="text-slate-400">→</span>
+          <a href="/settings/billing" className="block">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 hover:border-blue-300 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-slate-900">Billing & Usage</div>
+                  <div className="text-sm text-slate-500 mt-1">GMV history, plan details, invoices</div>
                 </div>
+                <span className="text-slate-400">→</span>
               </div>
-            </a>
-          </div>
+            </div>
+          </a>
         )}
       </div>
     </div>
