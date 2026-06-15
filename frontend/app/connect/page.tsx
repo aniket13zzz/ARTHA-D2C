@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 // artha-v2/frontend/app/connect/page.tsx
 // Onboarding wizard: Choose platform → Connect Shopify OR WooCommerce → Connect Razorpay
 
