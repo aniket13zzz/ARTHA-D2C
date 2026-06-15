@@ -1,29 +1,40 @@
-# artha-v2/.github/workflows/daily-sync.yml
-# Triggers nightly reconciliation at 2 AM IST (8:30 PM UTC)
-# Protected by CRON_SECRET header
-
 name: Daily Reconciliation Sync
 
 on:
   schedule:
-    - cron: "30 20 * * *"   # 8:30 PM UTC = 2:00 AM IST
-  workflow_dispatch:          # Allow manual trigger from GitHub UI
+    - cron: '30 20 * * *'   # 2 AM IST = 8:30 PM UTC
+  workflow_dispatch:
 
 jobs:
   sync:
-    name: Trigger Artha Sync
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
+      - name: Wake up Render service
+        run: |
+          echo "Warming up backend..."
+          for i in {1..6}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 15 \
+              "${{ secrets.BACKEND_URL }}/health")
+            echo "Attempt $i — HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Backend ready."
+              break
+            fi
+            sleep 10
+          done
+
       - name: Trigger sync endpoint
         run: |
           HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            --max-time 120 \
             -X POST "${{ secrets.BACKEND_URL }}/api/cron/sync" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json")
 
           echo "HTTP Status: $HTTP_STATUS"
+          echo "Response body:"
           cat /tmp/response.json
 
           if [ "$HTTP_STATUS" != "200" ]; then
@@ -31,15 +42,19 @@ jobs:
             exit 1
           fi
 
+          echo "Sync completed successfully."
+
       - name: Log result
         if: always()
-        run: |
-          echo "Sync completed at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          cat /tmp/response.json || true
+        run: echo "Workflow finished at $(date -u)"
 
       - name: Notify on failure
         if: failure()
+        env:
+          SLACK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          curl -s -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"text\": \"🔴 Artha V2 nightly sync FAILED at $(date -u). Check GitHub Actions.\"}" || true
+          if [ -n "$SLACK_URL" ]; then
+            curl -s -X POST "$SLACK_URL" \
+              -H "Content-Type: application/json" \
+              -d '{"text":"❌ Artha nightly sync FAILED. Check GitHub Actions logs."}'
+          fi
