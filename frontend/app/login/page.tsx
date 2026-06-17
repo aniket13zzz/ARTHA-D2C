@@ -1,6 +1,4 @@
-﻿"use client";
-
-export const dynamic = "force-dynamic";
+"use client";
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -15,17 +13,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
-    if (error) {
-      setError(error.message);
-    } else {
-      setSent(true);
-    }
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) { setError(error.message); } else { setSent(true); }
     setLoading(false);
   }
 
@@ -57,8 +46,16 @@ export default function LoginPage() {
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            {error && <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">{error}</div>}
-            <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-2.5 px-4 rounded-lg"
+            >
               {loading ? "Sending..." : "Send Magic Link"}
             </button>
           </form>
