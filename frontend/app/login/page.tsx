@@ -1,6 +1,7 @@
 "use client";
 // artha-v2/frontend/app/login/page.tsx
-// Magic Link authentication via Supabase
+
+export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -15,14 +16,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
-
     if (error) {
       setError(error.message);
     } else {
@@ -34,7 +33,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 text-white text-2xl font-bold mb-4">
             ₹
