@@ -207,7 +207,7 @@ async def create_org(
         .maybe_single()
         .execute()
     )
-    if existing.data:
+    if existing and existing.data:
         raise HTTPException(status_code=409, detail="User already belongs to an org")
 
     # Create org
