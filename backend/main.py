@@ -96,13 +96,17 @@ async def require_auth(
 async def get_org_id(auth: dict = Depends(require_auth)) -> str:
     """Get org_id for authenticated user."""
     db = get_db()
-    result = (
-        db.table("users")
-        .select("org_id, role")
-        .eq("supabase_uid", auth["uid"])
-        .single()
-        .execute()
-    )
+    try:
+        result = (
+            db.table("users")
+            .select("org_id, role")
+            .eq("supabase_uid", auth["uid"])
+            .single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(status_code=404, detail="User org not found — please complete onboarding at /connect")
+
     if not result.data:
         raise HTTPException(status_code=404, detail="User org not found")
     return result.data["org_id"]
